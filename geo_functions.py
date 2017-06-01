@@ -5,6 +5,7 @@ from shapely.geometry import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
 from geopy.distance import VincentyDistance
 import geopandas as gpd
+import folium
 import csv
 
 NORTH, EAST, SOUTH, WEST = 0, 90, 180, 270
@@ -105,15 +106,59 @@ def get_sgGrid():
         p0 = [y, min_lon]
         moved_point = mover.destination(point=p0, bearing=NORTH)
         y = moved_point.latitude
+    lons.sort(); lats.sort()
     save_pickle_file(ofpath, [lons, lats])
     return lons, lats
 
 
+def viz_aZone_html(zi, zj, path=None):
+    lons, lats = get_sgGrid()
+    assert zi < len(lons) and zj < len(lats)
+    lon0, lon1 = lons[zi], lons[zi + 1]
+    lat0, lat1 = lats[zj], lats[zj + 1]
+    lonC, latC = (lon0 + lon1) / 2.0, (lat0 + lat1) / 2.0
+    #
+    map_osm = folium.Map(location=[latC, lonC], zoom_start=16)
+    folium.Marker((latC, lonC), popup='zid (%d, %d)' % (zi, zj),
+                  icon=folium.Icon(color='red')
+                  ).add_to(map_osm)
+    for lon in lons:
+        sx, sy, ex, ey = lon, lats[0], lon, lats[-1]
+        map_osm.add_children(folium.PolyLine(locations=[(sy, sx), (ey, ex)], weight=1.0))
+    for lat in lats:
+        sx, sy, ex, ey = lons[0], lat, lons[-1], lat
+        map_osm.add_children(folium.PolyLine(locations=[(sy, sx), (ey, ex)], weight=1.0))
+    if path == None:
+        map_osm.save('test.html')
+    else:
+        map_osm.save(path)
+
+#
+
+
+
+# x, y = zones[(zi, zj)].cCoor_gps
+# zizj = '%d#%d' % (zi, zj)
+#
+# map_osm
+#
+#
+# pos_df['zizj'] = pos_df.apply(lambda x: '%d#%d' % (x['zi'], x['zj']), axis=1)
+# df_for_drawing = pos_df.loc[:,('zizj', 'numWholeEn')].copy(deep=True)
+# map_osm = draw_zones(df_for_drawing)
+#
+# map_osm
+
+
+
+
 if __name__ == '__main__':
-    print len(get_sgRoads())
-    print len(get_sgBuildings())
+    # print len(get_sgRoads())
+    # print len(get_sgBuildings())
     # print get_sgMainBorder()[:2]
     # print get_sgBorder()[:2]
     # print get_sgRoads()[:2]
-    lons, lats =  get_sgGrid()
-    print lats
+    # lons, lats =  get_sgGrid()
+    # print lats
+
+    viz_aZone_html(0, 0, path=None)
